@@ -1,0 +1,11 @@
+.pio/
+.pioenvs/
+.piolibdeps/
+.vscode/
+.clangd/
+compile_commands.json
+*.o
+*.a
+*.elf
+*.bin
+.DS_Store
