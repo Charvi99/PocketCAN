@@ -5,7 +5,8 @@
  * Emulates CAN devices by responding to specific messages
  */
 
-#include "../hal/can_hal.h"
+#include "can_types.h"
+#include "i_can_bus.h"
 
 struct EmulationRule {
     uint32_t trigger_id;            // CAN ID that triggers response
@@ -17,6 +18,8 @@ struct EmulationRule {
 
 class DeviceEmulator {
 public:
+    explicit DeviceEmulator(ICANBus& bus) : bus(bus) {}
+
     /**
      * Initialize emulator
      */
@@ -69,27 +72,20 @@ public:
     void clear_rules();
 
     /**
-     * Process incoming message for emulation
+     * Check an incoming frame against the rules and schedule any responses.
+     * @param now current millisecond tick, supplied by CanService
      */
-    void process_message(const CANMessage& msg);
+    void process_message(const CANMessage& msg, uint32_t now);
 
     /**
-     * Update - call from main loop
+     * Send any scheduled responses that have come due.
+     * @param now current millisecond tick, supplied by CanService
      */
-    void update();
+    void update(uint32_t now);
 
-    /**
-     * Load emulation profile from file
-     * @param filename Profile file path
-     * @return true if successful
-     */
+    // Deferred to sub-project C (persistence). These return false today;
+    // that is a documented gap, not an unfinished edit.
     bool load_profile(const char* filename);
-
-    /**
-     * Save emulation profile to file
-     * @param filename Profile file path
-     * @return true if successful
-     */
     bool save_profile(const char* filename);
 
 private:
@@ -101,6 +97,7 @@ private:
         bool active;
     };
 
+    ICANBus& bus;
     EmulationRule rules[MAX_RULES];
     int rule_count = 0;
     bool running = false;
@@ -108,5 +105,5 @@ private:
     PendingResponse pending_responses[MAX_RULES];
     int pending_count = 0;
 
-    void add_pending_response(const CANMessage& msg, uint32_t delay_ms);
+    void add_pending_response(const CANMessage& msg, uint32_t delay_ms, uint32_t now);
 };

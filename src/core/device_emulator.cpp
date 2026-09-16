@@ -1,5 +1,4 @@
 #include "device_emulator.h"
-#include <Arduino.h>
 #include <cstring>
 
 void DeviceEmulator::init() {
@@ -12,7 +11,6 @@ void DeviceEmulator::start() {
     if (!running) {
         running = true;
         pending_count = 0;
-        Serial.println("Device Emulator started");
     }
 }
 
@@ -20,13 +18,11 @@ void DeviceEmulator::stop() {
     if (running) {
         running = false;
         pending_count = 0;
-        Serial.println("Device Emulator stopped");
     }
 }
 
 int DeviceEmulator::add_rule(const EmulationRule& rule) {
     if (rule_count >= MAX_RULES) {
-        Serial.println("ERROR: Maximum emulation rules reached");
         return -1;
     }
 
@@ -66,58 +62,54 @@ void DeviceEmulator::clear_rules() {
     memset(rules, 0, sizeof(rules));
 }
 
-void DeviceEmulator::process_message(const CANMessage& msg) {
+void DeviceEmulator::process_message(const CANMessage& msg, uint32_t now) {
     if (!running) {
         return;
     }
 
-    // Check if message matches any rules
     for (int i = 0; i < rule_count; i++) {
         if (!rules[i].enabled) {
             continue;
         }
-
         if (msg.id == rules[i].trigger_id) {
-            // Match found - schedule response
-            add_pending_response(rules[i].response, rules[i].delay_ms);
+            add_pending_response(rules[i].response, rules[i].delay_ms, now);
         }
     }
 }
 
-void DeviceEmulator::add_pending_response(const CANMessage& msg, uint32_t delay_ms) {
+void DeviceEmulator::add_pending_response(const CANMessage& msg, uint32_t delay_ms,
+                                          uint32_t now) {
     if (pending_count >= MAX_RULES) {
-        Serial.println("WARNING: Pending response queue full");
-        return;
+        return;   // queue full; drop rather than overwrite a pending response
     }
 
-    pending_responses[pending_count].message = msg;
-    pending_responses[pending_count].send_time = millis() + delay_ms;
-    pending_responses[pending_count].active = true;
+    pending_responses[pending_count].message   = msg;
+    pending_responses[pending_count].send_time = now + delay_ms;   // may wrap
+    pending_responses[pending_count].active    = true;
     pending_count++;
 }
 
-void DeviceEmulator::update() {
+void DeviceEmulator::update(uint32_t now) {
     if (!running) {
         return;
     }
 
-    uint32_t now = millis();
-
-    // Process pending responses
     for (int i = 0; i < pending_count; i++) {
         if (!pending_responses[i].active) {
             continue;
         }
 
-        if (now >= pending_responses[i].send_time) {
-            // Send response
-            if (CANHAL::transmit(pending_responses[i].message)) {
+        // Signed difference, not 'now >= send_time'. send_time is allowed to
+        // wrap past zero; the signed delta stays correct across the wrap as
+        // long as the delay is under ~24 days, which every real delay is.
+        if (static_cast<int32_t>(now - pending_responses[i].send_time) >= 0) {
+            if (bus.transmit(pending_responses[i].message)) {
                 pending_responses[i].active = false;
             }
         }
     }
 
-    // Remove inactive responses
+    // Compact the queue, dropping sent responses.
     int write_idx = 0;
     for (int read_idx = 0; read_idx < pending_count; read_idx++) {
         if (pending_responses[read_idx].active) {
@@ -131,13 +123,11 @@ void DeviceEmulator::update() {
 }
 
 bool DeviceEmulator::load_profile(const char* filename) {
-    // TODO: Implement profile loading from file
-    Serial.printf("TODO: Load emulation profile from %s\n", filename);
-    return false;
+    (void)filename;
+    return false;   // deferred to sub-project C
 }
 
 bool DeviceEmulator::save_profile(const char* filename) {
-    // TODO: Implement profile saving to file
-    Serial.printf("TODO: Save emulation profile to %s\n", filename);
-    return false;
+    (void)filename;
+    return false;   // deferred to sub-project C
 }
