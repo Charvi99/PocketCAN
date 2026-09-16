@@ -34,6 +34,12 @@ enum class CANFrameType : uint8_t {
 #define CAN_RX_BUFFER_SIZE      1000    // Number of CAN messages to buffer
 #define CAN_TX_QUEUE_SIZE       50      // Transmit queue size
 
+// Receive pipeline
+#define MAX_FRAMES_PER_TICK     32      // Bounds one CanService::update() so a
+                                        // saturated bus cannot starve LVGL.
+                                        // At 1 Mbit/s a full bus delivers
+                                        // ~8000 frames/s; tuned on hardware.
+
 // Filter Configuration
 #define MAX_FILTERS             8       // Maximum number of simultaneous filters
 #define MAX_MASK_FILTERS        4       // Maximum number of mask filters
