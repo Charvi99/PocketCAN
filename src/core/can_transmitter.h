@@ -5,7 +5,8 @@
  * Handles single-shot and periodic CAN message transmission
  */
 
-#include "../hal/can_hal.h"
+#include "can_types.h"
+#include "i_can_bus.h"
 
 struct PeriodicMessage {
     CANMessage message;
@@ -16,10 +17,13 @@ struct PeriodicMessage {
 
 class CANTransmitter {
 public:
+    explicit CANTransmitter(ICANBus& bus) : bus(bus) {}
+
     /**
-     * Initialize transmitter
+     * Initialize transmitter.
+     * @param now current millisecond tick, used to seed periodic schedules
      */
-    void init();
+    void init(uint32_t now);
 
     /**
      * Send a single CAN message
@@ -57,10 +61,10 @@ public:
     void clear_periodic();
 
     /**
-     * Update - call from main loop
-     * Sends periodic messages
+     * Send any periodic messages that have come due.
+     * @param now current millisecond tick, supplied by CanService
      */
-    void update();
+    void update(uint32_t now);
 
     /**
      * Get number of periodic messages
@@ -74,6 +78,8 @@ public:
 
 private:
     static constexpr int MAX_PERIODIC = 10;
+    ICANBus& bus;
     PeriodicMessage periodic_messages[MAX_PERIODIC];
     int periodic_count = 0;
+    uint32_t now_ = 0;      // last tick seen; lets add_periodic seed last_sent
 };

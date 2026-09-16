@@ -1,25 +1,24 @@
 #include "can_transmitter.h"
-#include <Arduino.h>
 #include <cstring>
 
-void CANTransmitter::init() {
+void CANTransmitter::init(uint32_t now) {
+    now_ = now;
     clear_periodic();
 }
 
 bool CANTransmitter::send(const CANMessage& msg) {
-    return CANHAL::transmit(msg);
+    return bus.transmit(msg);
 }
 
 int CANTransmitter::add_periodic(const CANMessage& msg, uint32_t interval_ms) {
     if (periodic_count >= MAX_PERIODIC) {
-        Serial.println("ERROR: Maximum periodic messages reached");
         return -1;
     }
 
-    periodic_messages[periodic_count].message = msg;
+    periodic_messages[periodic_count].message     = msg;
     periodic_messages[periodic_count].interval_ms = interval_ms;
-    periodic_messages[periodic_count].last_sent = millis();
-    periodic_messages[periodic_count].active = true;
+    periodic_messages[periodic_count].last_sent   = now_;
+    periodic_messages[periodic_count].active      = true;
 
     return periodic_count++;
 }
@@ -43,7 +42,7 @@ bool CANTransmitter::set_periodic_enabled(int index, bool enabled) {
     }
     periodic_messages[index].active = enabled;
     if (enabled) {
-        periodic_messages[index].last_sent = millis();
+        periodic_messages[index].last_sent = now_;
     }
     return true;
 }
@@ -61,16 +60,17 @@ void CANTransmitter::clear_periodic() {
     memset(periodic_messages, 0, sizeof(periodic_messages));
 }
 
-void CANTransmitter::update() {
-    uint32_t now = millis();
+void CANTransmitter::update(uint32_t now) {
+    now_ = now;
 
     for (int i = 0; i < periodic_count; i++) {
         if (!periodic_messages[i].active) {
             continue;
         }
 
+        // Subtraction, not addition: correct across the 49.7-day millis() wrap.
         if (now - periodic_messages[i].last_sent >= periodic_messages[i].interval_ms) {
-            if (CANHAL::transmit(periodic_messages[i].message)) {
+            if (bus.transmit(periodic_messages[i].message)) {
                 periodic_messages[i].last_sent = now;
             }
         }
