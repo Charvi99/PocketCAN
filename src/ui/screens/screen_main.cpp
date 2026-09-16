@@ -43,14 +43,15 @@ lv_obj_t* ScreenMain::create_nav_grid(lv_obj_t* parent) {
     lv_obj_set_style_pad_all(grid_cont, 10, 0);
     lv_obj_clear_flag(grid_cont, LV_OBJ_FLAG_SCROLLABLE);
 
-    // Set up grid layout (2 columns)
-    static lv_coord_t col_dsc[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
+    // Set up grid layout (3 columns, 2 rows)
+    static lv_coord_t col_dsc[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
     static lv_coord_t row_dsc[] = {LV_GRID_CONTENT, LV_GRID_CONTENT, LV_GRID_TEMPLATE_LAST};
     lv_obj_set_grid_dsc_array(grid_cont, col_dsc, row_dsc);
     lv_obj_set_style_pad_column(grid_cont, 20, 0);
     lv_obj_set_style_pad_row(grid_cont, 20, 0);
 
     // Create navigation tiles
+    // Row 0
     lv_obj_t* tile1 = create_nav_tile(grid_cont, LV_SYMBOL_EYE_OPEN, "CAN Sniffer",
                                        "Monitor bus", THEME_COLOR_PRIMARY, sniffer_tile_cb);
     lv_obj_set_grid_cell(tile1, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_STRETCH, 0, 1);
@@ -59,6 +60,11 @@ lv_obj_t* ScreenMain::create_nav_grid(lv_obj_t* parent) {
                                        "Send messages", THEME_COLOR_ACCENT, transmit_tile_cb);
     lv_obj_set_grid_cell(tile2, LV_GRID_ALIGN_STRETCH, 1, 1, LV_GRID_ALIGN_STRETCH, 0, 1);
 
+    lv_obj_t* tile5 = create_nav_tile(grid_cont, LV_SYMBOL_EYE_OPEN, "CAN Scope",
+                                       "Signal analyzer", 0x9C27B0, scope_tile_cb);  // Purple color
+    lv_obj_set_grid_cell(tile5, LV_GRID_ALIGN_STRETCH, 2, 1, LV_GRID_ALIGN_STRETCH, 0, 1);
+
+    // Row 1
     lv_obj_t* tile3 = create_nav_tile(grid_cont, LV_SYMBOL_SHUFFLE, "Emulator",
                                        "Device simulation", THEME_COLOR_SUCCESS, emulator_tile_cb);
     lv_obj_set_grid_cell(tile3, LV_GRID_ALIGN_STRETCH, 0, 1, LV_GRID_ALIGN_STRETCH, 1, 1);
@@ -121,7 +127,6 @@ lv_obj_t* ScreenMain::create_nav_tile(lv_obj_t* parent, const char* icon, const 
 
 // Event callbacks
 void ScreenMain::menu_button_cb(lv_event_t* e) {
-    // TODO: Show side menu
     Serial.println("Menu button clicked");
     UIManager::navigate_to(Screen::MAIN_DASHBOARD);
 
@@ -129,21 +134,27 @@ void ScreenMain::menu_button_cb(lv_event_t* e) {
 
 void ScreenMain::sniffer_tile_cb(lv_event_t* e) {
     Serial.println("Navigating to Sniffer...");
-    // TODO: Navigate to sniffer screen
     UIManager::navigate_to(Screen::SNIFFER);
 }
 
 void ScreenMain::transmit_tile_cb(lv_event_t* e) {
     Serial.println("Navigating to Transmit...");
-    // TODO: Navigate to transmit screen
+    UIManager::navigate_to(Screen::TRANSMIT);
+
 }
 
 void ScreenMain::emulator_tile_cb(lv_event_t* e) {
     Serial.println("Navigating to Emulator...");
-    // TODO: Navigate to emulator screen
+    UIManager::navigate_to(Screen::EMULATOR);
+
 }
 
 void ScreenMain::settings_tile_cb(lv_event_t* e) {
     Serial.println("Navigating to Settings...");
-    // TODO: Navigate to settings screen
+    UIManager::navigate_to(Screen::SETTINGS);
+}
+
+void ScreenMain::scope_tile_cb(lv_event_t* e) {
+    Serial.println("Navigating to Scope...");
+    UIManager::navigate_to(Screen::SCOPE);
 }

@@ -12,7 +12,7 @@
 
 // Theme
 #define USE_DARK_THEME         true
-#define STATUS_BAR_HEIGHT      40
+#define STATUS_BAR_HEIGHT      55
 #define BOTTOM_BAR_HEIGHT      60
 
 // Data Logging

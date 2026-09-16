@@ -42,6 +42,7 @@ private:
     static void transmit_tile_cb(lv_event_t* e);
     static void emulator_tile_cb(lv_event_t* e);
     static void settings_tile_cb(lv_event_t* e);
+    static void scope_tile_cb(lv_event_t* e);
 
     static lv_obj_t* menu_panel;
 };

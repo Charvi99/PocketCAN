@@ -27,13 +27,13 @@ enum class CANFrameType : uint8_t {
 };
 
 // Default Settings
-#define DEFAULT_CAN_BAUD        CANBaudRate::BAUD_500K
-#define DEFAULT_FRAME_TYPE      CANFrameType::STANDARD
+#define DEFAULT_CAN_BAUD        CANBaudRate::BAUD_250K  // 250 kbps - confirmed working
+#define DEFAULT_FRAME_TYPE      CANFrameType::STANDARD  // Used for transmission only
 
 // Buffer Sizes
 #define CAN_RX_BUFFER_SIZE      1000    // Number of CAN messages to buffer
 #define CAN_TX_QUEUE_SIZE       50      // Transmit queue size
 
 // Filter Configuration
-#define MAX_FILTERS             8       // Maximum number of simultaneous filters
+#define MAX_FILTERS             32      // Maximum number of simultaneous filters
 #define MAX_MASK_FILTERS        4       // Maximum number of mask filters

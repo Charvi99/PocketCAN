@@ -70,13 +70,16 @@ bool CANFilter::check_message(const CANMessage& msg) const {
         return true;
     }
 
-    // Check against all enabled rules
-    bool has_accept_rule = false;
-    bool has_reject_rule = false;
+    bool has_any_accept_rules = false;
 
+    // First Match Wins Policy
     for (int i = 0; i < rule_count; i++) {
         if (!rules[i].enabled) {
             continue;
+        }
+
+        if (rules[i].accept) {
+            has_any_accept_rules = true;
         }
 
         // Check frame type matches
@@ -86,25 +89,19 @@ bool CANFilter::check_message(const CANMessage& msg) const {
 
         // Check if ID matches
         if (id_matches(msg.id, rules[i])) {
-            if (rules[i].accept) {
-                has_accept_rule = true;
-            } else {
-                has_reject_rule = true;
-            }
+            // Found a match! Return the rule's decision immediately.
+            return rules[i].accept;
         }
     }
 
-    // Reject takes priority
-    if (has_reject_rule) {
+    // No rules matched this message. Determine default policy.
+    
+    // If we have ANY "Accept" rules defined, we are in "Whitelist Mode" (Default Deny).
+    if (has_any_accept_rules) {
         return false;
     }
 
-    // If we have accept rules, only accept if matched
-    if (has_accept_rule) {
-        return true;
-    }
-
-    // No rules matched - default accept
+    // Otherwise we are in "Blacklist Mode" (Default Allow).
     return true;
 }
 

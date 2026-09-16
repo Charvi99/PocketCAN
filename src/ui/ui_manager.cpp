@@ -1,7 +1,12 @@
 #include "ui_manager.h"
 #include "themes/theme_colors.h"
 #include "screens/screen_main.h"
+#include "screens/screen_sniffer.h"
 #include "screens/screen_splash.h"
+#include "screens/screen_settings.h"
+#include "screens/screen_transmit.h"
+#include "screens/screen_scope.h"
+#include "../services/settings_manager.h"
 #include <Arduino.h>
 
 Screen UIManager::current_screen = Screen::MAIN_DASHBOARD;
@@ -17,7 +22,7 @@ bool UIManager::init()
 
     // Create home button in status bar
     lv_obj_t* home_btn = lv_btn_create(status_bar);
-    lv_obj_set_size(home_btn, 36, 36);
+    lv_obj_set_size(home_btn, 48, 48);
     lv_obj_align(home_btn, LV_ALIGN_LEFT_MID, 5, 0);
     lv_obj_set_style_bg_color(home_btn, lv_color_hex(THEME_COLOR_SURFACE_VARIANT), 0);
     lv_obj_set_style_radius(home_btn, 8, 0);
@@ -31,9 +36,20 @@ bool UIManager::init()
     lv_obj_center(icon);
     lv_obj_clear_flag(icon, LV_OBJ_FLAG_CLICKABLE);
 
-    // Show main dashboard initially
-    create_main_dashboard();
-    splash_shown = false;
+    // Check if splash screen should be shown
+    const AppSettings& settings = SettingsManager::get();
+    if (settings.show_splash) {
+        // Show splash screen for 2 seconds
+        create_splash_screen();
+        splash_start_time = millis();
+        splash_shown = true;
+        Serial.println("Showing splash screen");
+    } else {
+        // Show main dashboard directly
+        create_main_dashboard();
+        splash_shown = false;
+        Serial.println("Skipping splash screen (disabled in settings)");
+    }
 
     Serial.println("UI Manager initialized");
     return true;
@@ -60,7 +76,6 @@ void UIManager::navigate_to(Screen screen)
         break;
     case Screen::SNIFFER:
         create_sniffer_screen();
-        Serial.println("5");
 
         break;
     case Screen::TRANSMIT:
@@ -68,6 +83,9 @@ void UIManager::navigate_to(Screen screen)
         break;
     case Screen::SETTINGS:
         create_settings_screen();
+        break;
+    case Screen::SCOPE:
+        create_scope_screen();
         break;
     default:
         Serial.println("WARNING: Unknown screen");
@@ -87,6 +105,14 @@ Screen UIManager::get_current_screen()
 
 void UIManager::update()
 {
+    // Check if splash screen timeout has elapsed
+    if (splash_shown && (millis() - splash_start_time >= 2000)) {
+        Serial.println("Splash screen timeout - transitioning to dashboard");
+        splash_shown = false;
+        navigate_to(Screen::MAIN_DASHBOARD);
+        return;
+    }
+
     // Update global status bar
     if (status_bar) {
         StatusBar::update(status_bar);
@@ -110,10 +136,10 @@ void UIManager::update()
             break;
 
         case Screen::SNIFFER:
-
+            ScreenSniffer::update(active_screen_obj);
             break;
         case Screen::TRANSMIT:
-
+            ScreenTransmit::update(active_screen_obj);
             break;
         case Screen::EMULATOR:
 
@@ -122,7 +148,10 @@ void UIManager::update()
 
             break;
         case Screen::SETTINGS:
-
+            ScreenSettings::update(active_screen_obj);
+            break;
+        case Screen::SCOPE:
+            ScreenScope::update(active_screen_obj);
             break;
 
         default:
@@ -150,63 +179,24 @@ void UIManager::create_main_dashboard()
 
 void UIManager::create_sniffer_screen()
 {
-    active_screen_obj = lv_obj_create(NULL);
-    lv_obj_set_style_bg_color(active_screen_obj, lv_color_hex(THEME_COLOR_BACKGROUND), 0);
-
-    // Create content container (below status bar)
-    lv_obj_t* content = lv_obj_create(active_screen_obj);
-    lv_obj_set_width(content, LV_PCT(100));
-    lv_obj_set_height(content, 720 - STATUS_BAR_HEIGHT);
-    lv_obj_align(content, LV_ALIGN_TOP_MID, 0, STATUS_BAR_HEIGHT);
-    lv_obj_set_style_bg_color(content, lv_color_hex(THEME_COLOR_BACKGROUND), 0);
-    lv_obj_set_style_border_width(content, 0, 0);
-
-    lv_obj_t *label = lv_label_create(content);
-    lv_label_set_text(label, "CAN Sniffer");
-    lv_obj_set_style_text_font(label, &lv_font_montserrat_32, 0);
-    lv_obj_center(label);
-
+    active_screen_obj = ScreenSniffer::create();
     lv_scr_load(active_screen_obj);
 }
 
 void UIManager::create_transmit_screen()
 {
-    active_screen_obj = lv_obj_create(NULL);
-    lv_obj_set_style_bg_color(active_screen_obj, lv_color_hex(THEME_COLOR_BACKGROUND), 0);
-
-    // Create content container (below status bar)
-    lv_obj_t* content = lv_obj_create(active_screen_obj);
-    lv_obj_set_width(content, LV_PCT(100));
-    lv_obj_set_height(content, 720 - STATUS_BAR_HEIGHT);
-    lv_obj_align(content, LV_ALIGN_TOP_MID, 0, STATUS_BAR_HEIGHT);
-    lv_obj_set_style_bg_color(content, lv_color_hex(THEME_COLOR_BACKGROUND), 0);
-    lv_obj_set_style_border_width(content, 0, 0);
-
-    lv_obj_t *label = lv_label_create(content);
-    lv_label_set_text(label, "CAN Transmit");
-    lv_obj_set_style_text_font(label, &lv_font_montserrat_32, 0);
-    lv_obj_center(label);
-
+    active_screen_obj = ScreenTransmit::create();
     lv_scr_load(active_screen_obj);
 }
 
 void UIManager::create_settings_screen()
 {
-    active_screen_obj = lv_obj_create(NULL);
-    lv_obj_set_style_bg_color(active_screen_obj, lv_color_hex(THEME_COLOR_BACKGROUND), 0);
+    active_screen_obj = ScreenSettings::create();
+    lv_scr_load(active_screen_obj);
+}
 
-    // Create content container (below status bar)
-    lv_obj_t* content = lv_obj_create(active_screen_obj);
-    lv_obj_set_width(content, LV_PCT(100));
-    lv_obj_set_height(content, 720 - STATUS_BAR_HEIGHT);
-    lv_obj_align(content, LV_ALIGN_TOP_MID, 0, STATUS_BAR_HEIGHT);
-    lv_obj_set_style_bg_color(content, lv_color_hex(THEME_COLOR_BACKGROUND), 0);
-    lv_obj_set_style_border_width(content, 0, 0);
-
-    lv_obj_t *label = lv_label_create(content);
-    lv_label_set_text(label, "Settings");
-    lv_obj_set_style_text_font(label, &lv_font_montserrat_32, 0);
-    lv_obj_center(label);
-
+void UIManager::create_scope_screen()
+{
+    active_screen_obj = ScreenScope::create();
     lv_scr_load(active_screen_obj);
 }

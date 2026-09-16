@@ -70,3 +70,22 @@ uint32_t CANSniffer::get_message_count() const {
 float CANSniffer::get_messages_per_second() const {
     return messages_per_sec;
 }
+
+void CANSniffer::inject_test_message(const CANMessage& msg) {
+    // Add to buffer
+    message_buffer.push(msg);
+    message_count++;
+
+    // Trigger callback if registered
+    if (message_callback) {
+        message_callback(msg);
+    }
+
+    // Update statistics
+    uint32_t now = millis();
+    if (now - last_stat_time >= 1000) {
+        messages_per_sec = (message_count - last_count) * 1000.0f / (now - last_stat_time);
+        last_count = message_count;
+        last_stat_time = now;
+    }
+}

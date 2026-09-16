@@ -16,7 +16,8 @@ enum class Screen {
     TRANSMIT,
     EMULATOR,
     FILTER,
-    SETTINGS
+    SETTINGS,
+    SCOPE
 };
 
 class UIManager {
@@ -77,6 +78,11 @@ private:
      * Create settings screen
      */
     static void create_settings_screen();
+
+    /**
+     * Create scope screen
+     */
+    static void create_scope_screen();
 
     static void home_button_cb(lv_event_t* e);
 };

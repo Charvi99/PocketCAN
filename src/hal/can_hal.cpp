@@ -36,6 +36,17 @@ bool CANHAL::init(CANBaudRate baudrate) {
         return true;
     }
 
+    Serial.println("========================================");
+    Serial.println("CAN HAL Initialization");
+    Serial.println("========================================");
+    Serial.printf("TX Pin: GPIO_%d\n", CAN_TX_PIN);
+    Serial.printf("RX Pin: GPIO_%d\n", CAN_RX_PIN);
+    Serial.printf("Baud Rate: %lu bps\n", static_cast<uint32_t>(baudrate));
+    Serial.printf("Mode: TWAI_MODE_NORMAL\n");
+    Serial.printf("Filter: ACCEPT_ALL\n");
+    Serial.printf("RX Queue: %d messages\n", CAN_RX_BUFFER_SIZE);
+    Serial.printf("TX Queue: %d messages\n", CAN_TX_QUEUE_SIZE);
+
     // Configure CAN timing
     twai_timing_config_t t_config = get_timing_config(baudrate);
 
@@ -43,6 +54,8 @@ bool CANHAL::init(CANBaudRate baudrate) {
     twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
 
     // Configure CAN general settings
+    // NORMAL mode: Full CAN bus participation (receive, transmit, ACK)
+    // Required for Transmit and Emulator features
     twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT(
         CAN_TX_PIN,
         CAN_RX_PIN,
@@ -54,7 +67,12 @@ bool CANHAL::init(CANBaudRate baudrate) {
     // Install TWAI driver
     esp_err_t err = twai_driver_install(&g_config, &t_config, &f_config);
     if (err != ESP_OK) {
-        Serial.printf("ERROR: Failed to install TWAI driver: %d\n", err);
+        Serial.printf("ERROR: Failed to install TWAI driver: %d (0x%X)\n", err, err);
+        Serial.println("Common causes:");
+        Serial.println("  - GPIO pins already in use");
+        Serial.println("  - Invalid pin numbers");
+        Serial.println("  - TWAI already installed");
+        Serial.println("========================================");
         return false;
     }
 
@@ -62,7 +80,8 @@ bool CANHAL::init(CANBaudRate baudrate) {
     initialized = true;
     reset_stats();
 
-    Serial.printf("CAN HAL initialized at %d baud\n", static_cast<uint32_t>(baudrate));
+    Serial.printf("✓ CAN HAL initialized successfully at %lu baud\n", static_cast<uint32_t>(baudrate));
+    Serial.println("========================================");
     return true;
 }
 
@@ -85,6 +104,19 @@ bool CANHAL::start() {
 
     running = true;
     Serial.println("CAN bus started");
+
+    // Print TWAI status
+    twai_status_info_t status;
+    twai_get_status_info(&status);
+    Serial.printf("TWAI Status: state=%d, msgs_to_tx=%lu, msgs_to_rx=%lu, tx_err=%lu, rx_err=%lu\n",
+                  status.state, status.msgs_to_tx, status.msgs_to_rx,
+                  status.tx_error_counter, status.rx_error_counter);
+
+    const char* state_str[] = {"STOPPED", "RUNNING", "BUS_OFF", "RECOVERING"};
+    if (status.state < 4) {
+        Serial.printf("TWAI State: %s\n", state_str[status.state]);
+    }
+
     return true;
 }
 

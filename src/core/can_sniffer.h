@@ -64,6 +64,12 @@ public:
      */
     float get_messages_per_second() const;
 
+    /**
+     * Inject a test message (for testing/simulation)
+     * @param msg Message to inject
+     */
+    void inject_test_message(const CANMessage& msg);
+
 private:
     bool running = false;
     RingBuffer<CANMessage> message_buffer{CAN_RX_BUFFER_SIZE};

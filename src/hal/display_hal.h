@@ -42,6 +42,7 @@ public:
 private:
     static M5GFX display;
     static lv_disp_draw_buf_t draw_buf;
-    static lv_color_t *buf;
+    static lv_color_t *buf1;
+    static lv_color_t *buf2;  // Second buffer for double buffering
     static uint8_t current_brightness;
 };

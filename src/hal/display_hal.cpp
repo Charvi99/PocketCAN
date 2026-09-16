@@ -3,7 +3,8 @@
 
 M5GFX DisplayHAL::display;
 lv_disp_draw_buf_t DisplayHAL::draw_buf;
-lv_color_t* DisplayHAL::buf = nullptr;
+lv_color_t* DisplayHAL::buf1 = nullptr;
+lv_color_t* DisplayHAL::buf2 = nullptr;
 uint8_t DisplayHAL::current_brightness = 255;
 
 bool DisplayHAL::init() {
@@ -13,19 +14,29 @@ bool DisplayHAL::init() {
     // Initialize LVGL
     lv_init();
 
-    // Allocate buffer in PSRAM
-    buf = (lv_color_t*)heap_caps_malloc(
-        sizeof(lv_color_t) * LVGL_BUFFER_SIZE,
+    // Allocate double buffers in PSRAM for smoother rendering
+    // Using partial buffering (10 rows at a time) to reduce memory usage
+    size_t buffer_size = LVGL_PARTIAL_BUF_SIZE;
+
+    buf1 = (lv_color_t*)heap_caps_malloc(
+        sizeof(lv_color_t) * buffer_size,
         MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT
     );
 
-    if (!buf) {
-        Serial.println("ERROR: Failed to allocate LVGL buffer");
+    buf2 = (lv_color_t*)heap_caps_malloc(
+        sizeof(lv_color_t) * buffer_size,
+        MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT
+    );
+
+    if (!buf1 || !buf2) {
+        Serial.println("ERROR: Failed to allocate LVGL buffers");
+        if (buf1) free(buf1);
+        if (buf2) free(buf2);
         return false;
     }
 
-    // Initialize LVGL display buffer
-    lv_disp_draw_buf_init(&draw_buf, buf, NULL, LVGL_BUFFER_SIZE);
+    // Initialize LVGL display buffer with double buffering
+    lv_disp_draw_buf_init(&draw_buf, buf1, buf2, buffer_size);
 
     // Register display driver
     static lv_disp_drv_t disp_drv;
@@ -41,7 +52,8 @@ bool DisplayHAL::init() {
     // Set default brightness
     display.setBrightness(current_brightness);
 
-    Serial.println("Display HAL initialized");
+    Serial.printf("Display HAL initialized with double buffering (%d KB per buffer)\n",
+                  (buffer_size * sizeof(lv_color_t)) / 1024);
     return true;
 }
 
