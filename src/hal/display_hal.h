@@ -39,6 +39,12 @@ public:
      */
     static M5GFX& get_display();
 
+    /**
+     * Draw a fatal initialization error directly with M5GFX.
+     * Deliberately bypasses LVGL: this must work when LVGL is not running.
+     */
+    static void show_fatal(const char* subsystem);
+
 private:
     static M5GFX display;
     static lv_disp_draw_buf_t draw_buf;

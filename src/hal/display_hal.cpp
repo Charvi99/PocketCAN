@@ -64,3 +64,21 @@ uint8_t DisplayHAL::get_brightness() {
 M5GFX& DisplayHAL::get_display() {
     return display;
 }
+
+void DisplayHAL::show_fatal(const char* subsystem) {
+    display.setRotation(1);
+    display.fillScreen(TFT_BLACK);
+    display.setTextColor(TFT_RED, TFT_BLACK);
+    display.setTextSize(3);
+    display.setCursor(40, 60);
+    display.print("STARTUP FAILED");
+
+    display.setTextColor(TFT_WHITE, TFT_BLACK);
+    display.setTextSize(2);
+    display.setCursor(40, 140);
+    display.print(subsystem);
+    display.setCursor(40, 180);
+    display.print("could not be initialized.");
+    display.setCursor(40, 240);
+    display.print("Check wiring and power, then reset.");
+}
