@@ -5,7 +5,7 @@
  * Filters and masks CAN messages based on ID and data patterns
  */
 
-#include "../hal/can_hal.h"
+#include "can_types.h"
 #include "../config/can_config.h"
 
 struct FilterRule {

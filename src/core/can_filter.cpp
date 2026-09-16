@@ -1,5 +1,4 @@
 #include "can_filter.h"
-#include <Arduino.h>
 #include <cstring>
 
 void CANFilter::init() {
@@ -9,7 +8,6 @@ void CANFilter::init() {
 
 int CANFilter::add_rule(const FilterRule& rule) {
     if (rule_count >= MAX_FILTERS) {
-        Serial.println("ERROR: Maximum filters reached");
         return -1;
     }
 
@@ -60,52 +58,53 @@ bool CANFilter::id_matches(uint32_t id, const FilterRule& rule) const {
 }
 
 bool CANFilter::check_message(const CANMessage& msg) const {
-    // If filtering disabled, accept all
     if (!filter_enabled) {
         return true;
     }
-
-    // If no rules, accept all
     if (rule_count == 0) {
         return true;
     }
 
-    // Check against all enabled rules
-    bool has_accept_rule = false;
-    bool has_reject_rule = false;
+    bool matched_accept = false;
+    bool matched_reject = false;
+    bool allow_list_present = false;
 
     for (int i = 0; i < rule_count; i++) {
         if (!rules[i].enabled) {
             continue;
         }
 
-        // Check frame type matches
+        // Counted before the frame-type check: an accept rule for extended
+        // frames still means the user is running an allow-list, and a
+        // standard frame that matches nothing must not sail through it.
+        if (rules[i].accept) {
+            allow_list_present = true;
+        }
+
         if (rules[i].type != msg.type) {
             continue;
         }
 
-        // Check if ID matches
         if (id_matches(msg.id, rules[i])) {
             if (rules[i].accept) {
-                has_accept_rule = true;
+                matched_accept = true;
             } else {
-                has_reject_rule = true;
+                matched_reject = true;
             }
         }
     }
 
-    // Reject takes priority
-    if (has_reject_rule) {
+    // Reject always wins over accept.
+    if (matched_reject) {
         return false;
     }
-
-    // If we have accept rules, only accept if matched
-    if (has_accept_rule) {
+    if (matched_accept) {
         return true;
     }
 
-    // No rules matched - default accept
-    return true;
+    // Nothing matched. With an allow-list active that means reject; with only
+    // reject rules configured it means this frame was never on the block list.
+    return !allow_list_present;
 }
 
 void CANFilter::set_enabled(bool enabled) {
