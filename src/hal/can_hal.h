@@ -8,25 +8,7 @@
 #include <cstdint>
 #include "driver/twai.h"
 #include "../config/can_config.h"
-
-// CAN Message Structure
-struct CANMessage {
-    uint32_t id;                    // CAN identifier
-    uint8_t data[8];                // Data bytes
-    uint8_t dlc;                    // Data length code (0-8)
-    CANFrameType type;              // Standard or Extended
-    uint32_t timestamp_ms;          // Timestamp in milliseconds
-    bool rtr;                       // Remote transmission request
-};
-
-// CAN Statistics
-struct CANStats {
-    uint32_t rx_count;              // Received messages
-    uint32_t tx_count;              // Transmitted messages
-    uint32_t error_count;           // Error count
-    uint32_t bus_off_count;         // Bus-off events
-    float bus_load_percent;         // Estimated bus load
-};
+#include "../core/can_types.h"
 
 class CANHAL {
 public:

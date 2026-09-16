@@ -84,7 +84,7 @@ void setup() {
         StateManager::set_can_state(CANBusState::RUNNING);
         Serial.println("CAN Bus started successfully");
     } else {
-        StateManager::set_can_state(CANBusState::ERROR);
+        StateManager::set_can_state(CANBusState::FAILED);
         Serial.println("WARNING: Failed to start CAN bus");
     }
 
@@ -110,7 +110,7 @@ void loop() {
 
     // Check for CAN bus errors
     if (CANHAL::is_bus_error()) {
-        StateManager::set_can_state(CANBusState::ERROR);
+        StateManager::set_can_state(CANBusState::FAILED);
     }
 
     // Update UI

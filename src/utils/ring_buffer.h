@@ -2,26 +2,29 @@
 
 /**
  * Ring Buffer (Circular Buffer)
- * Thread-safe circular buffer implementation
+ * NOT thread-safe. All access is from the main loop by design.
+ * Storage comes from PSRAM on the device via pc_alloc().
  */
 
 #include <cstdint>
 #include <cstring>
 
+#include "psram_alloc.h"
+
 template<typename T>
 class RingBuffer {
 public:
     RingBuffer(size_t capacity) : capacity(capacity), head(0), tail(0), count(0) {
-        buffer = new T[capacity];
+        buffer = static_cast<T*>(pc_alloc(sizeof(T) * capacity));
     }
 
     ~RingBuffer() {
-        delete[] buffer;
+        pc_free(buffer);
     }
 
     /**
-     * Push item to buffer
-     * @return true if successful, false if buffer full
+     * Push item to buffer. When full, silently overwrites the oldest item.
+     * @return always true - kept for call-site compatibility
      */
     bool push(const T& item) {
         if (is_full()) {

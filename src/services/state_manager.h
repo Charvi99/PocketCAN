@@ -6,6 +6,7 @@
  */
 
 #include "../config/can_config.h"
+#include "../core/can_types.h"
 
 enum class AppMode {
     SNIFFER,
@@ -13,12 +14,6 @@ enum class AppMode {
     EMULATOR,
     OSCILLOSCOPE,
     SETTINGS
-};
-
-enum class CANBusState {
-    STOPPED,
-    RUNNING,
-    ERROR
 };
 
 struct ApplicationState {
