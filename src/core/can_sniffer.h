@@ -5,7 +5,7 @@
  * Captures and buffers CAN messages from the bus
  */
 
-#include "../hal/can_hal.h"
+#include "can_types.h"
 #include "../utils/ring_buffer.h"
 #include <functional>
 
@@ -14,9 +14,10 @@ using CANMessageCallback = std::function<void(const CANMessage&)>;
 class CANSniffer {
 public:
     /**
-     * Initialize sniffer
+     * Initialize sniffer.
+     * @param now current millisecond tick, seeds the rate window
      */
-    void init();
+    void init(uint32_t now);
 
     /**
      * Start sniffing
@@ -34,10 +35,16 @@ public:
     bool is_running() const { return running; }
 
     /**
-     * Update - call from main loop
-     * Processes incoming CAN messages
+     * Record one captured frame. Called by CanService for every frame that
+     * survives the filter.
      */
-    void update();
+    void record(const CANMessage& msg);
+
+    /**
+     * Recompute the messages-per-second figure. Cheap; call every tick.
+     * @param now current millisecond tick, supplied by CanService
+     */
+    void update_stats(uint32_t now);
 
     /**
      * Get message buffer
@@ -50,9 +57,10 @@ public:
     void on_message_received(CANMessageCallback callback);
 
     /**
-     * Clear message buffer
+     * Clear captured history and reset counters.
+     * @param now current millisecond tick, re-seeds the rate window
      */
-    void clear();
+    void clear(uint32_t now);
 
     /**
      * Get message count

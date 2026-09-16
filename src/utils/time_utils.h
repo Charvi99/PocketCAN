@@ -7,7 +7,7 @@
 
 #include <cstdint>
 #include <cstdio>
-#include <Arduino.h>
+#include <cstdlib>
 
 class TimeUtils {
 public:
@@ -40,19 +40,5 @@ public:
             float seconds = diff / 1000.0f;
             sprintf(output, "%.3fs", seconds);
         }
-    }
-
-    /**
-     * Get current uptime in milliseconds
-     */
-    static uint32_t get_uptime_ms() {
-        return millis();
-    }
-
-    /**
-     * Get current uptime in microseconds
-     */
-    static uint64_t get_uptime_us() {
-        return micros();
     }
 };

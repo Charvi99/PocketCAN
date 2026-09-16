@@ -68,7 +68,7 @@ void CANTransmitter::update(uint32_t now) {
             continue;
         }
 
-        // Subtraction, not addition: correct across the 49.7-day millis() wrap.
+        // Subtraction, not addition: correct across the 49.7-day tick wrap.
         if (now - periodic_messages[i].last_sent >= periodic_messages[i].interval_ms) {
             if (bus.transmit(periodic_messages[i].message)) {
                 periodic_messages[i].last_sent = now;
