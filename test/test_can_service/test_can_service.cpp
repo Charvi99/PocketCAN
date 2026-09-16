@@ -86,10 +86,56 @@ void test_can_service_drains_bus_while_capture_is_paused(void) {
     TEST_ASSERT_EQUAL_UINT32(0, bus.rx_queue.size());
 }
 
+void test_can_service_recovers_from_bus_off(void) {
+    FakeCanBus bus;
+    CanService svc(bus);
+    svc.init(0);
+    svc.start(0);
+    TEST_ASSERT_EQUAL_INT(static_cast<int>(CANBusState::RUNNING),
+                          static_cast<int>(svc.bus_state()));
+
+    bus.bus_error = true;
+    svc.update(1000);
+    TEST_ASSERT_EQUAL_INT(static_cast<int>(CANBusState::RECOVERING),
+                          static_cast<int>(svc.bus_state()));
+    TEST_ASSERT_TRUE(bus.recover_called);
+
+    // Recovery succeeded on the hardware; the settle delay must still elapse.
+    bus.bus_error = false;
+    svc.update(1050);
+    TEST_ASSERT_EQUAL_INT(static_cast<int>(CANBusState::RECOVERING),
+                          static_cast<int>(svc.bus_state()));
+
+    svc.update(1100);
+    TEST_ASSERT_EQUAL_INT(static_cast<int>(CANBusState::RUNNING),
+                          static_cast<int>(svc.bus_state()));
+}
+
+void test_can_service_gives_up_after_five_attempts(void) {
+    FakeCanBus bus;
+    CanService svc(bus);
+    svc.init(0);
+    svc.start(0);
+
+    bus.bus_error = true;   // never clears
+    uint32_t now = 1000;
+    for (int attempt = 0; attempt < 6; attempt++) {
+        svc.update(now);          // notice, initiate recovery
+        now += 200;
+        svc.update(now);          // settle elapsed, still bus-off -> retry
+        now += 200;
+    }
+
+    TEST_ASSERT_EQUAL_INT(static_cast<int>(CANBusState::FAILED),
+                          static_cast<int>(svc.bus_state()));
+}
+
 int main(int, char**) {
     UNITY_BEGIN();
     RUN_TEST(test_can_service_respects_frame_budget);
     RUN_TEST(test_can_service_routes_filtered_frames_to_history_and_emulator);
     RUN_TEST(test_can_service_drains_bus_while_capture_is_paused);
+    RUN_TEST(test_can_service_recovers_from_bus_off);
+    RUN_TEST(test_can_service_gives_up_after_five_attempts);
     return UNITY_END();
 }

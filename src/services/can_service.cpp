@@ -68,5 +68,40 @@ void CanService::update(uint32_t now) {
 }
 
 void CanService::service_bus_health(uint32_t now) {
-    (void)now;   // Task 12 implements the recovery state machine here
+    switch (state) {
+        case CANBusState::RUNNING:
+            if (bus.is_bus_error()) {
+                state = CANBusState::BUS_OFF;
+            } else {
+                break;
+            }
+            // fall through: attempt recovery on the same tick we notice
+
+        case CANBusState::BUS_OFF:
+            if (recovery_attempts >= MAX_RECOVERY_ATTEMPTS) {
+                state = CANBusState::FAILED;
+                break;
+            }
+            recovery_attempts++;
+            recovery_started = now;
+            bus.recover();
+            state = CANBusState::RECOVERING;
+            break;
+
+        case CANBusState::RECOVERING:
+            if (now - recovery_started < RECOVERY_SETTLE_MS) {
+                break;   // give the controller time to settle
+            }
+            if (bus.is_bus_error()) {
+                state = CANBusState::BUS_OFF;   // retry on the next tick
+            } else {
+                state = CANBusState::RUNNING;
+                recovery_attempts = 0;
+            }
+            break;
+
+        case CANBusState::STOPPED:
+        case CANBusState::FAILED:
+            break;
+    }
 }
